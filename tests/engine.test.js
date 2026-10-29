@@ -1,0 +1,8 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{LEVELS}from'../levels.js';import{start,move,undo,decode,middle,hasMoves}from'../engine.js';
+for(let i=0;i<6;i++)test(`nivel ${i+1}: solución legal, conteo, deshacer y persistencia`,()=>{let s=start(i);const initial=structuredClone(s);for(const [a,b]of LEVELS[i].solution){const before=s;s=move(s,a,b);assert.notEqual(s,before);assert.equal(s.pegs.length,before.pegs.length-1);assert.deepEqual(undo(s).pegs,before.pegs);assert.deepEqual(decode(JSON.stringify(s)),s);}assert.equal(s.pegs.length,1);assert.deepEqual(s.wins,[i]);assert.equal(hasMoves(s.pegs),false);assert.deepEqual(start(i),initial);assert.equal(s.history.length,LEVELS[i].pegs.length-1);});
+test('rechaza diagonales y bordes',()=>{assert.equal(middle(4,6),null);assert.equal(middle(0,6),null);assert.equal(middle(-1,1),null);assert.equal(middle(0,2),1);});
+test('movimientos inválidos no mutan',()=>{const s=start();assert.equal(move(s,1,3),s);assert.equal(move(s,0,5),s);assert.equal(move(s,0,2),s);assert.equal(undo(s),s);});
+test('datos corruptos regresan al inicio',()=>{for(const x of ['bad','null','{}','{"level":100}','{"level":0,"history":[{"from":1,"to":3}]}'])assert.deepEqual(decode(x),start());});
+test('filtra logros inválidos y duplicados',()=>{assert.deepEqual(decode(JSON.stringify({...start(),wins:[0,0,-1,6,'1',2]})).wins,[0,2]);});
+test('deshacer conserva logro conseguido',()=>{let s=start();for(const m of LEVELS[0].solution)s=move(s,...m);assert.deepEqual(undo(s).wins,[0]);});
+test('seis configuraciones distintas con dificultad creciente',()=>{assert.equal(new Set(LEVELS.map(l=>l.pegs.join(','))).size,6);LEVELS.forEach((l,i)=>assert.equal(l.pegs.length,6+i));});
